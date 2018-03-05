@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Core>
+#include <igl/writeOBJ.h>
 
 #include "DeformableMesh.h"
 #include "DeformationGradient2d.h"
@@ -14,7 +15,8 @@ public:
     ~TriangleMesh();
   
     void initMesh(); 
-    void addDeformationState(float t);
+    void addDeformationState(float t, Eigen::MatrixXd* deformation);
+    void recoverMesh(Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh);
 
 };
 

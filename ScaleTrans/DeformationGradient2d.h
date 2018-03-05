@@ -30,9 +30,6 @@ public:
     // compute SVD
     void svd();
 
-    // update rotation and stretch matrix
-    void updateRT( Eigen::MatrixXd U,  Eigen::MatrixXd V,  Eigen::VectorXd s );
-
 };
 
 

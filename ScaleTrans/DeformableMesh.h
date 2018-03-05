@@ -29,11 +29,9 @@ public:
     DeformationGradient2d* deformedState_ed;
 
     Eigen::MatrixXd Bs;   // base matrix. (2, t)
+//    Eigen::MatrixXd X0;
     Eigen::MatrixXd X_st;   // deformation matrix
     Eigen::MatrixXd X_ed;   // deformation matrix
-
-    // new vertex positions after interpolation
-    vector< Eigen::MatrixXd> predictedVertices;
 
 
     DeformableMesh() {};

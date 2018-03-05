@@ -55,20 +55,25 @@ int main(int argc, char *argv[])
 
     // interpolation in between
     float t = 0.5;
+
     // add a new state to the mesh
-    mesh->addDeformationState(t);
-    Eigen::MatrixXd new_V = mesh->predictedVertices.back();
-    cout << "==============  new_V  ==============" << endl << new_V.rows() << " x " << new_V.cols() << endl;
+    int numV = V.rows(), numT = F.rows();
+    Eigen::MatrixXd* deformMesh = new Eigen::MatrixXd(numV, 3);
+    Eigen::MatrixXd* deformGrad = new Eigen::MatrixXd(numT, 2);
 
-    delete mesh;
+    mesh->addDeformationState(t, deformGrad);
+    mesh->recoverMesh(deformGrad, deformMesh);
+    delete deformGrad;
 
+    /*
     // Create a libigl Viewer object
     igl::opengl::glfw::Viewer viewer;
     // Set the vertices and faces for the viewer
-    viewer.data().set_mesh(new_V, F);
+    viewer.data().set_mesh(*deformMesh, F);
     // Launch a viewer instance
     viewer.launch();
     return 0;
+     */
 
 }
 
