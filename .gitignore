@@ -1,0 +1,5 @@
+/build/**
+/ScaleTrans/cmake-build-debug/**
+/ScaleTrans/.idea/**
+
+.DS_Store
