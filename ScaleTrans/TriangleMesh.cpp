@@ -93,28 +93,11 @@ void TriangleMesh::addDeformationState(float p, Eigen::MatrixXd* deformation)
 void TriangleMesh::recoverMesh(Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh)
 {
     int numTri = triangles.rows();
-    //Todo: check if value is the same if overwrite
-    Eigen::VectorXd triCheck = Eigen::VectorXd::Zero(initialVertices.rows());
-
     for(int t=0; t<numTri; t++) 
     {
-        Eigen::Vector2d A, B;
-
-        Eigen::Vector2d C = deformedVertices_st.block<1, 2>(triangles(t, 2), 0);
-        // Eigen::MatrixXd dx = deformedState_st->F.block<2, 2>(2*t, 0) * Bs.block<2,2>(2*t, 0);
-        
-        Eigen::MatrixXd dx = deformGrad->block<2, 2>(t*2, 0) * Bs.block<2,2>(2*t, 0);
-
-/////////// C ????
-        A = dx.col(0) + C;
-        B = dx.col(1) + C;
-
-        deformMesh->row(triangles(t, 0)) = Eigen::Vector3d(A(0), A(1), 0.0);
-        deformMesh->row(triangles(t, 1)) = Eigen::Vector3d(B(0), B(1), 0.0);
-        deformMesh->row(triangles(t, 2)) = Eigen::Vector3d(C(0), C(1), 0.0);
-
+        deformMesh->row(triangles(t, 0)) = initialVertices.row(triangles(t, 0)) * deformGrad->block<2, 2>(2*t, 0);
     }
-
+    
     cout << "==============  write to out.obj  ==============" << endl << deformMesh->rows() << " x " << deformMesh->cols() << endl;
     igl::writeOBJ("out.obj", *deformMesh, triangles);
 
