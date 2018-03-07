@@ -24,45 +24,45 @@ void TriangleMesh::initMesh()
 {
     cout << "====== initialize the mesh data =====" << endl;
     // Compute the base matrix for deformation gradients
-    int numTris = triangles.rows();    // get triangle number
-    Bs.resize(2*numTris, 2);
-//    X0.resize(2, 2*numTris);
-    X_st.resize(2*numTris, 2);
-    X_ed.resize(2*numTris, 2);
+    int numTri = triangles.rows();    // get triangle number
+    Bs.resize(2*numTri, 2); 
+    F_st.resize(2*numTri, 2);
+    F_ed.resize(2*numTri, 2);
 
-    for(int t=0;t<numTris;t++)
+    Eigen::Vector2d A,B,C;
+    
+    for(int t=0; t<numTri; t++)
     {
-        Eigen::Vector2d A,B,C;
-        Eigen::Matrix2d V, beta;
+        Eigen::Matrix2d dx1, dx2, X0, beta;
 
         A = initialVertices.row(triangles(t,0)).block<1,2>(0,0);
         B = initialVertices.row(triangles(t,1)).block<1,2>(0,0);
         C = initialVertices.row(triangles(t,2)).block<1,2>(0,0);
 
-        beta << A-C,B-C;
-        Bs.block<2,2>(2*t, 0) = beta.inverse();
-//        X0.block<2,2>(0,2*t) = beta;
+        X0 << A-C,B-C;
+        beta = X0.inverse();
+        Bs.block<2,2>(2*t, 0) = X0;
 
         ////// deformation start
         A = deformedVertices_st.row(triangles(t,0)).block<1,2>(0,0);
         B = deformedVertices_st.row(triangles(t,1)).block<1,2>(0,0);
         C = deformedVertices_st.row(triangles(t,2)).block<1,2>(0,0);
 
-        V << A-C,B-C;
-        X_st.block<2,2>(2*t, 0) = V * beta;
+        dx1 << A-C,B-C; 
+        F_st.block<2,2>(2*t, 0) = dx1 * beta;
 
         ////// deformation end
         A = deformedVertices_ed.row(triangles(t,0)).block<1,2>(0,0);
         B = deformedVertices_ed.row(triangles(t,1)).block<1,2>(0,0);
         C = deformedVertices_ed.row(triangles(t,2)).block<1,2>(0,0);
 
-        V << A-C,B-C;
-        X_ed.block<2,2>(2*t, 0) = V * beta;
+        dx2 << A-C,B-C;
+        F_ed.block<2,2>(2*t, 0) = dx2 * beta;
     }
 
     // updateDeformationMesh
-    deformedState_st = new DeformationGradient2d(X_st);
-    deformedState_ed = new DeformationGradient2d(X_ed);
+    deformedState_st = new DeformationGradient2d(numTri, F_st);
+    deformedState_ed = new DeformationGradient2d(numTri, F_ed);
 
     deformedState_st->svd();
     deformedState_ed->svd();
@@ -70,56 +70,49 @@ void TriangleMesh::initMesh()
 
 
 
-void TriangleMesh::addDeformationState(float t, Eigen::MatrixXd* deformation)
+void TriangleMesh::addDeformationState(float p, Eigen::MatrixXd* deformation)
 {
     cout << "====== add deformation state =====" << endl;
+    Eigen::MatrixXd U = Eigen::MatrixXd(2, 2);
+    Eigen::MatrixXd S = Eigen::MatrixXd(2, 2);
+    Eigen::MatrixXd V = Eigen::MatrixXd(2, 2);
 
-    // interpolate in log space
-    Eigen::MatrixXd U = (t * deformedState_st->_U.log() + (1 - t) * deformedState_ed->_U.log()).exp();
-    Eigen::MatrixXd V = (t * deformedState_st->_V.log() + (1 - t) * deformedState_ed->_V.log()).exp();
+    int numTri = triangles.rows();
+    for (int t = 0; t < numTri; ++t)
+    {
+        U = p * deformedState_st->_U.block<2,2>(2*t, 0) + (1 - p) * deformedState_ed->_U.block<2,2>(2*t, 0);
+        V = p * deformedState_st->_V.block<2,2>(2*t, 0) + (1 - p) * deformedState_ed->_V.block<2,2>(2*t, 0);
+        
+        // the stretch matrix interpolated in log space
+        S = (p * deformedState_st->_S.block<2,2>(2*t, 0).log() + (1 - p) * deformedState_ed->_S.block<2,2>(2*t, 0).log()).exp();
 
-    // interpolate singular
-    Eigen::VectorXd s = (t * deformedState_st->_s.log() + (1 - t) * deformedState_ed->_s.log()).exp();
-
-    Eigen::MatrixXd S = s.asDiagonal();
-    cout << "S: " << endl << S << endl;
-    cout << "U rows: " << endl << U.rows() << " x " << U.cols() << endl;
-
-    Eigen::MatrixXd Vt = V.transpose().conjugate();
-    cout << "Vt: " << endl << Vt << endl;
-
-    Eigen::MatrixXd R = U * Vt;              // ???
-    Eigen::MatrixXd T = V * S * Vt;
-
-    cout << "R: " << endl << R.rows() << " x " << R.cols() << endl;
-    cout << "T: " <<endl << T.rows() << " x " << T.cols() << endl;
-
-    *deformation = R * T;
-    cout << "deformation: " << deformation->rows() << " x " << deformation->cols() << endl;
-
+        deformation->block<2,2>(2*t, 0) = U * S * V;
+    }
 }
 
 void TriangleMesh::recoverMesh(Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh)
 {
-//    Eigen::MatrixXd X = Eigen::MatrixXd(X0);
+    int numTri = triangles.rows();
+    //Todo: check if value is the same if overwrite
+    Eigen::VectorXd triCheck = Eigen::VectorXd::Zero(initialVertices.rows());
 
-    int numTris = triangles.rows();
-    for(int t=0; t<numTris; t++) {
-        Eigen::Vector2d A, B, C;
+    for(int t=0; t<numTri; t++) 
+    {
+        Eigen::Vector2d A, B;
 
-        Eigen::Vector2d x0 = initialVertices.row(triangles(t, 0)).block<1, 2>(0, 0);
-        Eigen::MatrixXd dx = deformGrad->row(t*2).block<2, 2>(0, 0);
-        cout << dx << endl << endl;
+        Eigen::Vector2d C = deformedVertices_st.block<1, 2>(triangles(t, 2), 0);
+        // Eigen::MatrixXd dx = deformedState_st->F.block<2, 2>(2*t, 0) * Bs.block<2,2>(2*t, 0);
+        
+        Eigen::MatrixXd dx = deformGrad->block<2, 2>(t*2, 0) * Bs.block<2,2>(2*t, 0);
 
-//        A = x0;
-//        B = A - Eigen::Vector2d(dx.row(1));
-//        C = A - Eigen::Vector2d(dx.row(0));
-        A = B = C = x0;
+/////////// C ????
+        A = dx.col(0) + C;
+        B = dx.col(1) + C;
 
-        //Todo: check if value is the same if overwrite
-        deformMesh->row(triangles(t, 0)) = A;
-        deformMesh->row(triangles(t, 1)) = B;
-        deformMesh->row(triangles(t, 2)) = C;
+        deformMesh->row(triangles(t, 0)) = Eigen::Vector3d(A(0), A(1), 0.0);
+        deformMesh->row(triangles(t, 1)) = Eigen::Vector3d(B(0), B(1), 0.0);
+        deformMesh->row(triangles(t, 2)) = Eigen::Vector3d(C(0), C(1), 0.0);
+
     }
 
     cout << "==============  write to out.obj  ==============" << endl << deformMesh->rows() << " x " << deformMesh->cols() << endl;

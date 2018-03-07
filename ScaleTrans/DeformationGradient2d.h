@@ -14,16 +14,14 @@
  */
 class DeformationGradient2d {
 public:
+    int triNum;
     Eigen::MatrixXd F;   // deformation gradient
     Eigen::MatrixXd R, T;   // rotation and stretch
     // SVD
-    Eigen::MatrixXd _U, _V, _Vt;
-    Eigen::VectorXd _s;   // left scaling, right scaling, singular values  
+    Eigen::MatrixXd _U, _V, _Vt, _S;   // left scaling, right scaling, singular values
 
-    // new state without initial variable
-    DeformationGradient2d() {};
     // create from known state
-    DeformationGradient2d(Eigen::MatrixXd deformgrad);
+    DeformationGradient2d(int numTris, Eigen::MatrixXd deformgrad);
 
     ~DeformationGradient2d() {};
 

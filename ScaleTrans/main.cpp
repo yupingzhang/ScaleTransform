@@ -32,6 +32,13 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
+    if (argc < 2)
+    {
+        cout << "Usage: ./xxx interp" << endl;
+    }
+    // interpolation in between
+    float p = stof(argv[1]);
+
     Eigen::MatrixXd V;
     Eigen::MatrixXd V1;
     Eigen::MatrixXd V2;
@@ -53,19 +60,15 @@ int main(int argc, char *argv[])
     TriangleMesh* mesh = new TriangleMesh(V, V1, V2, F);
     mesh->initMesh();
 
-    // interpolation in between
-    float t = 0.5;
-
     // add a new state to the mesh
     int numV = V.rows(), numT = F.rows();
     Eigen::MatrixXd* deformMesh = new Eigen::MatrixXd(numV, 3);
-    Eigen::MatrixXd* deformGrad = new Eigen::MatrixXd(numT, 2);
+    Eigen::MatrixXd* deformGrad = new Eigen::MatrixXd(numT * 2, 2);
 
-    mesh->addDeformationState(t, deformGrad);
+    mesh->addDeformationState(p, deformGrad);
     mesh->recoverMesh(deformGrad, deformMesh);
     delete deformGrad;
 
-    /*
     // Create a libigl Viewer object
     igl::opengl::glfw::Viewer viewer;
     // Set the vertices and faces for the viewer
@@ -73,7 +76,6 @@ int main(int argc, char *argv[])
     // Launch a viewer instance
     viewer.launch();
     return 0;
-     */
 
 }
 

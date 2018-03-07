@@ -15,7 +15,7 @@ public:
     ~TriangleMesh();
   
     void initMesh(); 
-    void addDeformationState(float t, Eigen::MatrixXd* deformation);
+    void addDeformationState(float p, Eigen::MatrixXd* deformation);
     void recoverMesh(Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh);
 
 };
