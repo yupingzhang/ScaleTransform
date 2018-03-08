@@ -3,9 +3,11 @@
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <igl/writeOBJ.h>
+#include <string>
 
 #include "DeformableMesh.h"
 #include "DeformationGradient2d.h"
+
 
 
 class TriangleMesh : public DeformableMesh
@@ -16,7 +18,7 @@ public:
   
     void initMesh(); 
     void addDeformationState(float p, Eigen::MatrixXd* deformation);
-    void recoverMesh(Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh);
+    void recoverMesh(int i, Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh);
 
 };
 

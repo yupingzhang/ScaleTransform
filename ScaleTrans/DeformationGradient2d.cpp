@@ -15,10 +15,14 @@ DeformationGradient2d::DeformationGradient2d(int numTri, Eigen::MatrixXd deformg
     F.resize(triNum*2, 2);
     _U.resize(triNum*2, 2);
     _V.resize(triNum*2, 2); 
-    _Vt.resize(triNum*2, 2); 
-    _S.resize(triNum*2, 2);
+
+    _s.resize(triNum, 2);
+
     R.resize(triNum*2, 2);
     T.resize(triNum*2, 2);
+
+    theta_u.resize(triNum);
+    theta_v.resize(triNum);
 
     F = deformgrad;
 }
@@ -31,25 +35,19 @@ void DeformationGradient2d::svd()
     {
     	Eigen::JacobiSVD<Eigen::MatrixXd> svd(F.block<2,2>(2*t, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
 
-    	_S.block<2,2>(2*t, 0) = svd.singularValues().asDiagonal();
+    	_s.row(t) = svd.singularValues();      
+
     	_U.block<2,2>(2*t, 0) = svd.matrixU();
     	_V.block<2,2>(2*t, 0) = svd.matrixV();
-    	_Vt.block<2,2>(2*t, 0) = _V.transpose().conjugate();
+
+        Eigen::Rotation2Dd r1;
+        r1.fromRotationMatrix(_U.block<2,2>(2*t, 0));
+        theta_u.push_back(r1.angle());
+
+        Eigen::Rotation2Dd r2;
+        r2.fromRotationMatrix(_V.block<2,2>(2*t, 0));
+        theta_v.push_back(r2.angle());
+
     }
-	/*
-	    Eigen::JacobiSVD<Eigen::MatrixXd> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
-
-	    _S = svd.singularValues().asDiagonal();
-	    _U = svd.matrixU();
-	    _V = svd.matrixV();
-	    _Vt = _V.transpose().conjugate();
-
-	    R = U * Vt;   
-	    T = V * S * Vt;
-	*/
-
-//    cout << "Its singular values are:" << endl << svd.singularValues() << endl;
-//    cout << "Its left singular vectors are the columns of the thin U matrix:" << endl << _U.rows() << " x " << _U.cols() << endl;
-//    cout << "Its right singular vectors are the columns of the thin V matrix:" << endl << _V.rows() << " x " << _V.cols() << endl;
-
+	
 }

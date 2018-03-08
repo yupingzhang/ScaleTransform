@@ -7,7 +7,10 @@
 
 #include <Eigen/Dense>
 #include <Eigen/SVD>
-#include <unsupported/Eigen/MatrixFunctions>
+#include <Eigen/Geometry> 
+// #include <unsupported/Eigen/MatrixFunctions>
+
+#include <vector>
 
 /**!
  *
@@ -18,7 +21,8 @@ public:
     Eigen::MatrixXd F;   // deformation gradient
     Eigen::MatrixXd R, T;   // rotation and stretch
     // SVD
-    Eigen::MatrixXd _U, _V, _Vt, _S;   // left scaling, right scaling, singular values
+    Eigen::MatrixXd _U, _V, _s;   // left scaling, right scaling, singular values
+    std::vector<float> theta_u, theta_v;  // rotation angle
 
     // create from known state
     DeformationGradient2d(int numTris, Eigen::MatrixXd deformgrad);

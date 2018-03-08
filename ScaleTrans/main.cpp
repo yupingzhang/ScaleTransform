@@ -24,6 +24,7 @@ Dependencies: Eigen and libigl
 
 #include <algorithm>
 #include <iostream>
+#include <unistd.h>
 
 #include "TriangleMesh.h"
 
@@ -32,12 +33,12 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
-    {
-        cout << "Usage: ./xxx interp" << endl;
-    }
-    // interpolation in between
-    float p = stof(argv[1]);
+    // if (argc < 2)
+    // {
+    //     cout << "Usage: ./xxx interp" << endl;
+    // }
+    // // interpolation in between
+    // float p = stof(argv[1]);
 
     Eigen::MatrixXd V;
     Eigen::MatrixXd V1;
@@ -65,16 +66,28 @@ int main(int argc, char *argv[])
     Eigen::MatrixXd* deformMesh = new Eigen::MatrixXd(numV, 3);
     Eigen::MatrixXd* deformGrad = new Eigen::MatrixXd(numT * 2, 2);
 
-    mesh->addDeformationState(p, deformGrad);
-    mesh->recoverMesh(deformGrad, deformMesh);
-    delete deformGrad;
+    for (int i = 0; i <= 10; ++i)
+    {
+        float p = float(i)/10.0;
+        cout << "p: " << p << endl;
+        
+        mesh->addDeformationState(p, deformGrad);
+        mesh->recoverMesh(0, deformGrad, deformMesh);
+        
+        // Create a libigl Viewer object
+        igl::opengl::glfw::Viewer viewer;
+        viewer.data().set_mesh(V1, F);
+    
+        // Set the vertices and faces for the viewer
+        viewer.data().clear();
+        viewer.data().set_mesh(*deformMesh, F);
+        // Launch a viewer instance
+        viewer.launch();
+    }
 
-    // Create a libigl Viewer object
-    igl::opengl::glfw::Viewer viewer;
-    // Set the vertices and faces for the viewer
-    viewer.data().set_mesh(*deformMesh, F);
-    // Launch a viewer instance
-    viewer.launch();
+    delete deformMesh;
+    delete deformGrad;
+   
     return 0;
 
 }

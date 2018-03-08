@@ -73,32 +73,51 @@ void TriangleMesh::initMesh()
 void TriangleMesh::addDeformationState(float p, Eigen::MatrixXd* deformation)
 {
     cout << "====== add deformation state =====" << endl;
-    Eigen::MatrixXd U = Eigen::MatrixXd(2, 2);
-    Eigen::MatrixXd S = Eigen::MatrixXd(2, 2);
-    Eigen::MatrixXd V = Eigen::MatrixXd(2, 2);
+    Eigen::MatrixXd U = Eigen::Matrix2d::Zero();
+    Eigen::MatrixXd S = Eigen::Matrix2d::Zero();
+    Eigen::MatrixXd Vt = Eigen::Matrix2d::Zero();
 
     int numTri = triangles.rows();
     for (int t = 0; t < numTri; ++t)
     {
-        U = p * deformedState_st->_U.block<2,2>(2*t, 0) + (1 - p) * deformedState_ed->_U.block<2,2>(2*t, 0);
-        V = p * deformedState_st->_V.block<2,2>(2*t, 0) + (1 - p) * deformedState_ed->_V.block<2,2>(2*t, 0);
-        
-        // the stretch matrix interpolated in log space
-        S = (p * deformedState_st->_S.block<2,2>(2*t, 0).log() + (1 - p) * deformedState_ed->_S.block<2,2>(2*t, 0).log()).exp();
+        const double u = p * deformedState_st->theta_u[t] + (1 - p) * deformedState_ed->theta_u[t];
+        const double v = p * deformedState_st->theta_v[t] + (1 - p) * deformedState_ed->theta_v[t];
 
-        deformation->block<2,2>(2*t, 0) = U * S * V;
+        Eigen::Rotation2Dd r_u(u); 
+        Eigen::Rotation2Dd r_v(v); 
+
+        Eigen::Matrix2d U = Eigen::Matrix2d(r_u.toRotationMatrix());
+        Eigen::Matrix2d V = Eigen::Matrix2d(r_v.toRotationMatrix());
+
+        Eigen::Matrix2d Vt = V.transpose().conjugate();
+
+        // the stretch matrix interpolated in log space
+        S(0, 0) = exp(p * log(deformedState_st->_s(t, 0)) + (1 - p) * log(deformedState_ed->_s(t, 0)));
+        S(1, 1) = exp(p * log(deformedState_st->_s(t, 1)) + (1 - p) * log(deformedState_ed->_s(t, 1)));
+        // 
+        // S(0, 0) = p * deformedState_st->_s(t, 0) + (1-p) * deformedState_ed->_s(t, 0);
+        // S(1, 1) = p * deformedState_st->_s(t, 1) + (1-p) * deformedState_ed->_s(t, 1);
+
+        deformation->block<2,2>(2*t, 0) = U * S * Vt;
     }
 }
 
-void TriangleMesh::recoverMesh(Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh)
+void TriangleMesh::recoverMesh(int i, Eigen::MatrixXd* deformGrad, Eigen::MatrixXd* deformMesh)
 {
     int numTri = triangles.rows();
+
     for(int t=0; t<numTri; t++) 
     {
-        deformMesh->row(triangles(t, 0)) = initialVertices.row(triangles(t, 0)) * deformGrad->block<2, 2>(2*t, 0);
+        Eigen::Vector2d xy1 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.row(triangles(t, 0)).transpose();
+        Eigen::Vector2d xy2 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.row(triangles(t, 1)).transpose();
+        Eigen::Vector2d xy3 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.row(triangles(t, 2)).transpose();
+        
+        deformMesh->row(triangles(t, 0)) = Eigen::Vector3d(xy1(0), xy1(1), 0.0);
+        deformMesh->row(triangles(t, 1)) = Eigen::Vector3d(xy2(0), xy2(1), 0.0);
+        deformMesh->row(triangles(t, 2)) = Eigen::Vector3d(xy3(0), xy3(1), 0.0);
     }
     
     cout << "==============  write to out.obj  ==============" << endl << deformMesh->rows() << " x " << deformMesh->cols() << endl;
-    igl::writeOBJ("out.obj", *deformMesh, triangles);
+    igl::writeOBJ("out/out_" + to_string(i) + ".obj", *deformMesh, triangles);
 
 }
