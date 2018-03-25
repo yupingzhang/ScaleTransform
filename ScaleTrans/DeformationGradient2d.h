@@ -22,15 +22,17 @@ public:
     Eigen::MatrixXd R, T;   // rotation and stretch
     // SVD
     Eigen::MatrixXd _U, _V, _s;   // left scaling, right scaling, singular values
-    std::vector<float> theta_u, theta_v;  // rotation angle
+    std::vector<double> theta_u, theta_v;  // rotation angle
 
     // create from known state
-    DeformationGradient2d(int numTris, Eigen::MatrixXd deformgrad);
+    DeformationGradient2d(int numTris);
 
     ~DeformationGradient2d() {};
 
     // compute SVD
-    void svd();
+    void svd(Eigen::MatrixXd deformgrad);
+
+    void initDeformedState(float scale1, float scale2);
 
 };
 

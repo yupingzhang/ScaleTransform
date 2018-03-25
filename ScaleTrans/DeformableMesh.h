@@ -5,8 +5,9 @@
 #ifndef SCALETRANS_DEFORMABLEMESH_H
 #define SCALETRANS_DEFORMABLEMESH_H
 
-#include <vector>
+
 #include "DeformationGradient2d.h"
+#include "DeformedMesh3d.h"
 
 using namespace std;
 
@@ -20,13 +21,14 @@ public:
 
     // vertex positions of current mesh
     Eigen::MatrixXd deformedVertices_st;
-
     Eigen::MatrixXd deformedVertices_ed;
 
     // deformed states
     DeformationGradient2d* deformedState_st;
-
     DeformationGradient2d* deformedState_ed;
+
+    DeformedMesh3d* deformedState3d_st;
+    DeformedMesh3d* deformedState3d_ed;
 
     Eigen::MatrixXd Bs;   // base dx
 
