@@ -42,7 +42,7 @@ void TriangleMesh::initMeshDeform2d()
 }
 
 
-void TriangleMesh::initMeshDeform3d()
+void TriangleMesh::initMeshDeform3d(vector<float> scales)
 {
     cout << "====== initialize the deformed mesh with given scales =====" << endl;
     int numTri = triangles.rows();    // get triangle number
@@ -51,8 +51,8 @@ void TriangleMesh::initMeshDeform3d()
     deformedState3d_st = new DeformedMesh3d(numTri);
     deformedState3d_ed = new DeformedMesh3d(numTri);
     
-    deformedState3d_st->initDeformedState(2.0, 1.0, 0.5);
-    deformedState3d_ed->initDeformedState(0.5, 1.0, 2.0);
+    deformedState3d_st->initDeformedState(scales[0], scales[1], scales[2], scales[3], scales[4]);
+    deformedState3d_ed->initDeformedState(scales[5], scales[6], scales[7], scales[8], scales[9]);
 
 }
 
@@ -150,10 +150,6 @@ void TriangleMesh::recoverMesh2d(int i, Eigen::MatrixXd* deformGrad, Eigen::Matr
 
     for(int t=0; t<numTri; t++) 
     {
-        // Eigen::Vector2d xy1 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.row(triangles(t, 0)).transpose();
-        // Eigen::Vector2d xy2 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.row(triangles(t, 1)).transpose();
-        // Eigen::Vector2d xy3 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.row(triangles(t, 2)).transpose();
-        // 
         Eigen::Vector2d xy1 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.block<1, 2>(triangles(t, 0), 0).transpose();
         Eigen::Vector2d xy2 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.block<1, 2>(triangles(t, 1), 0).transpose();
         Eigen::Vector2d xy3 = deformGrad->block<2, 2>(2*t, 0) * initialVertices.block<1, 2>(triangles(t, 2), 0).transpose();
@@ -180,16 +176,32 @@ void TriangleMesh::addDeformationState3d(float p, Eigen::MatrixXd* deformation)
 
     int numTri = triangles.rows();
     for (int t = 0; t < numTri; ++t)
-    {
-        // the stretch matrix interpolated in log space
-        // S(0, 0) = exp((1 - p) * log(deformedState3d_st->_s(t, 0)) + p * log(deformedState3d_ed->_s(t, 0)));
-        // S(1, 1) = exp((1 - p) * log(deformedState3d_st->_s(t, 1)) + p * log(deformedState3d_ed->_s(t, 1)));
-        // S(2, 2) = exp((1 - p) * log(deformedState3d_st->_s(t, 2)) + p * log(deformedState3d_ed->_s(t, 2)));
+    {   
+        // slerp
+        Eigen::Quaterniond qr_u = deformedState3d_st->quaternion_u.slerp(p, deformedState3d_ed->quaternion_u);
+        Eigen::Quaterniond qr_v = deformedState3d_st->quaternion_v.slerp(p, deformedState3d_ed->quaternion_v);
+           
+        // Update U and V 
+        U = qr_u.toRotationMatrix();
+        Eigen::MatrixXd V = qr_v.toRotationMatrix();
+        Vt = V.conjugate().transpose();
         
-        S(0, 0) = (1-p) * deformedState3d_st->_s(t, 0) + p * deformedState3d_ed->_s(t, 0);
-        S(1, 1) = (1-p) * deformedState3d_st->_s(t, 1) + p * deformedState3d_ed->_s(t, 1);
-        S(2, 2) = (1-p) * deformedState3d_st->_s(t, 2) + p * deformedState3d_ed->_s(t, 2);
-
+        // TODO
+        bool log_flag = true;
+        if (log_flag)
+        {
+            // the stretch/shear matrix interpolated in log space
+            S(0, 0) = exp((1 - p) * log(deformedState3d_st->_s(t, 0)) + p * log(deformedState3d_ed->_s(t, 0)));
+            S(1, 1) = exp((1 - p) * log(deformedState3d_st->_s(t, 1)) + p * log(deformedState3d_ed->_s(t, 1)));
+            S(2, 2) = exp((1 - p) * log(deformedState3d_st->_s(t, 2)) + p * log(deformedState3d_ed->_s(t, 2)));
+        }
+        else 
+        {
+            S(0, 0) = (1-p) * deformedState3d_st->_s(t, 0) + p * deformedState3d_ed->_s(t, 0);
+            S(1, 1) = (1-p) * deformedState3d_st->_s(t, 1) + p * deformedState3d_ed->_s(t, 1);
+            S(2, 2) = (1-p) * deformedState3d_st->_s(t, 2) + p * deformedState3d_ed->_s(t, 2);
+        }
+        
         deformation->block<3,3>(3*t, 0) = U * S * Vt;
     }
 }

@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 #include "DeformableMesh.h"
 
@@ -19,7 +20,7 @@ public:
   
     void initMesh(); 
 	void initMeshDeform2d();
-	void initMeshDeform3d();
+	void initMeshDeform3d(vector<float> scales);
 
     void addDeformationState2d(float p, Eigen::MatrixXd* deformation);
     void addDeformationState3d(float p, Eigen::MatrixXd* deformation);

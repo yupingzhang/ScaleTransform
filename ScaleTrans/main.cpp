@@ -25,6 +25,7 @@ Dependencies: Eigen and libigl
 
 #include <algorithm>
 #include <iostream>
+#include <vector>
 #include <unistd.h>
 #include <cmath>
 
@@ -38,6 +39,7 @@ int idx;
 float t;
 Eigen::MatrixXd V;
 Eigen::MatrixXi F;
+vector<float> scales;
 
 
 void createDeformMesh0()
@@ -154,21 +156,23 @@ bool pre_draw(igl::opengl::glfw::Viewer & viewer)
         if (idx > t)
         {
             viewer.core.is_animating = false;
+            return false;
         }
 
         TriangleMesh* mesh = new TriangleMesh(V, F);
-        mesh->initMeshDeform3d();
+        mesh->initMeshDeform3d(scales);
         mesh->addDeformationState3d(p, deformGrad);
         mesh->recoverMesh3d(idx, deformGrad, deformMesh);
 
-        // camera_eye << 0.0, 0.0, 5.0
+        // //default: camera_eye << 0.0, 0.0, 5.0
         float p_off = p + 0.2;
-        viewer.core.camera_eye << 5 * cos(p_off * PI), 0.0, 5 * sin(p_off * PI);
-        // light_position<< 0.0f, -0.30f, -5.0f;
-        viewer.core.light_position << -5 * cos(p * PI), -0.30f, -5 * sin(p * PI);
+        // viewer.core.camera_eye << 5 * cos(p_off * PI), 0.0, 5 * sin(p_off * PI);
+        // //default: light_position<< 0.0f, -0.30f, -5.0f;
+        // viewer.core.light_position << -5 * cos(p * PI), -0.30f, -5 * sin(p * PI);
 
         viewer.data().clear();
         viewer.data().set_mesh(*deformMesh, F);
+        viewer.core.align_camera_center(*deformMesh, F);
         viewer.data().show_lines = false;
         // viewer.draw();
 
@@ -202,7 +206,7 @@ void createDeformMesh3d()
     // viewer.callback_key_down = &key_down;
     viewer.callback_pre_draw = &pre_draw;
     viewer.core.is_animating = false;
-    viewer.core.animation_max_fps = 1.;
+    viewer.core.animation_max_fps = 30.;
     viewer.launch();
 }
 
@@ -215,7 +219,17 @@ int main(int argc, char *argv[])
     }
     // interpolation in between
     t = stof(argv[1]);
+    vector<string> scalestr(&argv[2], &argv[2] + 10); 
+
+    transform(std::begin(scalestr), std::end(scalestr), std::back_inserter(scales), [](string d) { return stof(d); } );
+
     cout << "Total frame: " << t << endl;
+    cout << "s1 s2 s3 u v :" << endl;
+    for (int i = 0; i < 10; ++i)
+    {
+        cout << scales[i] << " ";
+    }
+    cout << endl;
 
     if (t > 100) 
     {
